@@ -1,0 +1,78 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.2.1'
+    id 'io.spring.dependency-management' version '1.1.4'
+}
+
+group = 'com.ot'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '17'
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+ext {
+    elasticsearchVersion = '8.11.0'
+}
+
+dependencies {
+    // Spring Boot Web
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    
+    // Spring Boot WebFlux (SSE)
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+    
+    // Elasticsearch
+    implementation "co.elastic.clients:elasticsearch-java:${elasticsearchVersion}"
+    implementation "org.elasticsearch.client:elasticsearch-rest-client:${elasticsearchVersion}"
+    
+    // Apache HttpClient (Elasticsearch REST Client 의존성)
+    implementation 'org.apache.httpcomponents:httpclient:4.5.14'
+    implementation 'org.apache.httpcomponents:httpcore:4.4.16'
+    
+    // Jackson
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    
+    // Jakarta JSON API
+    implementation 'jakarta.json:jakarta.json-api:2.1.2'
+    
+    // Spring Boot Actuator
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    
+    // Validation
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    
+    // Swagger/OpenAPI
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
+    
+    // Lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    
+    // Spring Boot DevTools
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+    
+    // Test
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+// JAR 생성 시 실행 가능하도록 설정
+tasks.named('bootJar') {
+    archiveFileName = 'ot-security-backend.jar'
+}
+
+// Plain JAR 생성 비활성화
+tasks.named('jar') {
+    enabled = false
+}
