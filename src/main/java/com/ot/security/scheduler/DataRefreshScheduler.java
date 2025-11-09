@@ -1,9 +1,10 @@
 package com.ot.security.scheduler;
 
 import com.ot.security.dto.DashboardStatsDTO;
-import com.ot.security.model.ThreatEvent;
+import com.ot.security.entity.ThreatEvent;
 import com.ot.security.service.ElasticsearchService;
 import com.ot.security.service.SSEService;
+import com.ot.security.service.AssetManagementService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -20,6 +21,7 @@ public class DataRefreshScheduler {
 
     private final ElasticsearchService elasticsearchService;
     private final SSEService sseService;
+    private final AssetManagementService assetManagementService;
 
     private long lastThreatCount = 0;
     private long lastPacketCount = 0;
@@ -69,15 +71,15 @@ public class DataRefreshScheduler {
             var threatsByType = elasticsearchService.aggregateThreatsByType();
 
             DashboardStatsDTO stats = DashboardStatsDTO.builder()
-                .totalPackets(totalPackets)
-                .totalThreats(totalThreats)
-                .recentPackets(recentPackets)
-                .recentThreats(recentThreats)
-                .packetsPerSecond(recentPackets / 300.0)
-                .threatsByLevel(threatsByLevel)
-                .threatsByType(threatsByType)
-                .lastUpdate(Instant.now().toString())
-                .build();
+                    .totalPackets(totalPackets)
+                    .totalThreats(totalThreats)
+                    .recentPackets(recentPackets)
+                    .recentThreats(recentThreats)
+                    .packetsPerSecond(recentPackets / 300.0)
+                    .threatsByLevel(threatsByLevel)
+                    .threatsByType(threatsByType)
+                    .lastUpdate(Instant.now().toString())
+                    .build();
 
             sseService.sendStats(stats);
             log.debug("통계 업데이트 전송: packets={}, threats={}", totalPackets, totalThreats);
@@ -94,5 +96,18 @@ public class DataRefreshScheduler {
     public void sendHeartbeat() {
         sseService.sendHeartbeat();
         log.debug("하트비트 전송 - 활성 연결: {}", sseService.getActiveConnections());
+    }
+
+    /**
+     * 1분마다 자산 상태 업데이트
+     */
+    @Scheduled(fixedRate = 60000)
+    public void updateAssetStatuses() {
+        try {
+            assetManagementService.updateAssetStatuses();
+            log.debug("자산 상태 업데이트 완료");
+        } catch (Exception e) {
+            log.error("자산 상태 업데이트 실패", e);
+        }
     }
 }

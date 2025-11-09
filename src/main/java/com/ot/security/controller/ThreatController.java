@@ -1,6 +1,6 @@
 package com.ot.security.controller;
 
-import com.ot.security.model.ThreatEvent;
+import com.ot.security.entity.ThreatEvent;
 import com.ot.security.service.ElasticsearchService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

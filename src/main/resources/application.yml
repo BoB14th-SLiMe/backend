@@ -1,7 +1,23 @@
 spring:
   application:
     name: ot-security-backend
-    
+
+  # PostgreSQL 설정
+  datasource:
+    url: jdbc:postgresql://localhost:5432/ot_security
+    username: postgres
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+
   # Elasticsearch 설정
   elasticsearch:
     uris: http://localhost:9200
@@ -14,7 +30,7 @@ server:
   port: 8080
   compression:
     enabled: true
-    
+
 # Actuator
 management:
   endpoints:
@@ -24,13 +40,15 @@ management:
   endpoint:
     health:
       show-details: always
-      
+
 # Logging
 logging:
   level:
     root: INFO
     com.ot.security: DEBUG
-    co.elastic.clients: DEBUG
+    co.elastic.clients: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
   file:
     name: logs/application.log
   pattern:
@@ -43,16 +61,16 @@ ot-security:
   sse:
     timeout: 300000  # 5분
     heartbeat: 30000  # 30초
-    
+
   # 데이터 새로고침 간격
   refresh-interval: 5000  # 5초
-  
+
   # Elasticsearch 인덱스 설정
   elasticsearch:
     index-prefix: "ot-security"
     packet-index: "ot-security-packets"
     threat-index: "ot-security-threats"
-    
+
   # 페이징 설정
   pagination:
     default-page-size: 20

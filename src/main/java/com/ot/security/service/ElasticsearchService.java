@@ -2,16 +2,12 @@ package com.ot.security.service;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.SortOrder;
-import co.elastic.clients.elasticsearch._types.aggregations.Aggregation;
 import co.elastic.clients.elasticsearch._types.aggregations.StringTermsAggregate;
 import co.elastic.clients.elasticsearch._types.aggregations.StringTermsBucket;
-import co.elastic.clients.elasticsearch._types.query_dsl.Query;
-import co.elastic.clients.elasticsearch._types.query_dsl.RangeQuery;
-import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
-import com.ot.security.model.Packet;
-import com.ot.security.model.ThreatEvent;
+import com.ot.security.entity.Packet;
+import com.ot.security.entity.ThreatEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -95,6 +91,76 @@ public class ElasticsearchService {
         );
 
         return response.hits().total().value();
+    }
+
+    /**
+     * 특정 IP에 대한 최근 N분 위협 개수
+     */
+    public long countThreatsForIp(String ipAddress, int minutes) throws IOException {
+        try {
+            String timestamp = Instant.now().minus(minutes, ChronoUnit.MINUTES).toString();
+
+            SearchResponse<ThreatEvent> response = elasticsearchClient.search(s -> s
+                            .index(threatIndex + "-*")
+                            .size(0)
+                            .query(q -> q.bool(b -> b
+                                    .must(m -> m.range(r -> r
+                                            .field("@timestamp")
+                                            .gte(co.elastic.clients.json.JsonData.of(timestamp))
+                                    ))
+                                    .should(sh -> sh.term(t -> t
+                                            .field("src_ip.keyword")
+                                            .value(ipAddress)
+                                    ))
+                                    .should(sh -> sh.term(t -> t
+                                            .field("dst_ip.keyword")
+                                            .value(ipAddress)
+                                    ))
+                                    .minimumShouldMatch("1")
+                            )),
+                    ThreatEvent.class
+            );
+
+            return response.hits().total().value();
+        } catch (Exception e) {
+            log.warn("IP별 위협 카운트 실패: {}", e.getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * 특정 IP에 대한 최근 N분 패킷 개수
+     */
+    public long countPacketsForIp(String ipAddress, int minutes) throws IOException {
+        try {
+            String timestamp = Instant.now().minus(minutes, ChronoUnit.MINUTES).toString();
+
+            SearchResponse<Packet> response = elasticsearchClient.search(s -> s
+                            .index(packetIndex + "-*")
+                            .size(0)
+                            .query(q -> q.bool(b -> b
+                                    .must(m -> m.range(r -> r
+                                            .field("@timestamp")
+                                            .gte(co.elastic.clients.json.JsonData.of(timestamp))
+                                    ))
+                                    .should(sh -> sh.term(t -> t
+                                            .field("src_ip.keyword")
+                                            .value(ipAddress)
+                                    ))
+                                    .should(sh -> sh.term(t -> t
+                                            .field("dst_ip.keyword")
+                                            .value(ipAddress)
+                                    ))
+                                    .minimumShouldMatch("1")
+                            )),
+                    Packet.class
+            );
+
+            return response.hits().total().value();
+        } catch (Exception e) {
+            log.warn("IP별 패킷 카운트 실패: {}", e.getMessage());
+            return 0;
+        }
     }
 
     /**
@@ -301,9 +367,9 @@ public class ElasticsearchService {
     public long getTotalThreats() throws IOException {
         try {
             SearchResponse<ThreatEvent> response = elasticsearchClient.search(s -> s
-                .index(threatIndex + "-*")
-                .size(0),
-                ThreatEvent.class
+                            .index(threatIndex + "-*")
+                            .size(0),
+                    ThreatEvent.class
             );
             return response.hits().total().value();
         } catch (Exception e) {
@@ -311,4 +377,5 @@ public class ElasticsearchService {
             return 0;
         }
     }
+
 }

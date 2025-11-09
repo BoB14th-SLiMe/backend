@@ -1,7 +1,23 @@
 spring:
   application:
     name: ot-security-backend
-    
+
+  # PostgreSQL 설정 (Docker 환경)
+  datasource:
+    url: jdbc:postgresql://postgres:5432/ot_security
+    username: postgres
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+
   # Elasticsearch 설정 (Docker 환경)
   elasticsearch:
     uris: http://elasticsearch:9200
