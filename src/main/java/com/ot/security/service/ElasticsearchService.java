@@ -207,12 +207,14 @@ public class ElasticsearchService {
             );
 
             Map<String, Long> result = new HashMap<>();
-            StringTermsAggregate aggregate = response.aggregations()
-                .get("by_level")
-                .sterms();
+            if (response.aggregations().get("by_level") != null) {
+                StringTermsAggregate aggregate = response.aggregations()
+                    .get("by_level")
+                    .sterms();
 
-            for (StringTermsBucket bucket : aggregate.buckets().array()) {
-                result.put(bucket.key().stringValue(), bucket.docCount());
+                for (StringTermsBucket bucket : aggregate.buckets().array()) {
+                    result.put(bucket.key().stringValue(), bucket.docCount());
+                }
             }
 
             return result;
@@ -240,12 +242,14 @@ public class ElasticsearchService {
             );
 
             Map<String, Long> result = new HashMap<>();
-            StringTermsAggregate aggregate = response.aggregations()
-                .get("by_type")
-                .sterms();
+            if (response.aggregations().get("by_type") != null) {
+                StringTermsAggregate aggregate = response.aggregations()
+                    .get("by_type")
+                    .sterms();
 
-            for (StringTermsBucket bucket : aggregate.buckets().array()) {
-                result.put(bucket.key().stringValue(), bucket.docCount());
+                for (StringTermsBucket bucket : aggregate.buckets().array()) {
+                    result.put(bucket.key().stringValue(), bucket.docCount());
+                }
             }
 
             return result;

@@ -4,7 +4,7 @@ spring:
 
   # PostgreSQL 설정 (Docker 환경)
   datasource:
-    url: jdbc:postgresql://postgres:5432/ot_security
+    url: jdbc:postgresql://postgres:5432/security
     username: postgres
     password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver

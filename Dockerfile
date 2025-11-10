@@ -12,7 +12,7 @@ COPY src ./src
 # Build application
 RUN gradle bootJar --no-daemon
 
-# Run stage
+# Run stagee
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 

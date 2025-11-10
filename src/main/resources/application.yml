@@ -4,7 +4,7 @@ spring:
 
   # PostgreSQL 설정
   datasource:
-    url: jdbc:postgresql://localhost:5432/ot_security
+    url: jdbc:postgresql://localhost:5432/security
     username: postgres
     password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
