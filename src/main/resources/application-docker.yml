@@ -65,9 +65,9 @@ ot-security:
   
   # Elasticsearch 인덱스 설정
   elasticsearch:
-    index-prefix: "ot-security"
-    packet-index: "ot-security-packets"
-    threat-index: "ot-security-threats"
+    index-prefix: "ics"
+    packet-index: "ics-packets"
+    threat-index: "ics-threats"
     
   # 페이징 설정
   pagination:

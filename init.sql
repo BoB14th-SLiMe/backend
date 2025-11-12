@@ -81,6 +81,24 @@ CREATE TABLE IF NOT EXISTS banner_metrics_config (
 CREATE INDEX idx_banner_metrics_enabled ON banner_metrics_config(is_enabled);
 CREATE INDEX idx_banner_metrics_order ON banner_metrics_config(display_order);
 
+-- XAI 분석 결과
+CREATE TABLE IF NOT EXISTS xai_analysis (
+    id BIGSERIAL PRIMARY KEY,
+    timestamp TIMESTAMP,
+    threat_type VARCHAR(255),
+    source_ip VARCHAR(45),
+    destination_asset_ip VARCHAR(45),
+    detection_engine VARCHAR(100),
+    status VARCHAR(50),
+    detection_details TEXT,
+    violation TEXT,
+    conclusion TEXT,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_xai_analysis_timestamp ON xai_analysis(timestamp);
+CREATE INDEX idx_xai_analysis_threat_type ON xai_analysis(threat_type);
+
 -- ================================================
 -- 초기 데이터 삽입
 -- ================================================

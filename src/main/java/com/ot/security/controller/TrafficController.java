@@ -1,0 +1,76 @@
+package com.ot.security.controller;
+
+import com.ot.security.service.ElasticsearchService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@Slf4j
+@RestController
+@RequestMapping("/api/traffic")
+@RequiredArgsConstructor
+@Tag(name = "Traffic", description = "트래픽 모니터링 API")
+public class TrafficController {
+
+    private final ElasticsearchService elasticsearchService;
+
+    @GetMapping("/monitoring")
+    @Operation(summary = "트래픽 모니터링 데이터 조회", description = "24시간 트래픽 데이터와 7일 평균 데이터를 조회합니다.")
+    public ResponseEntity<Map<String, Object>> getTrafficMonitoring() {
+        try {
+            Map<String, Object> response = new HashMap<>();
+
+            // 24시간 트래픽 데이터
+            List<Map<String, Object>> currentTraffic = elasticsearchService.getHourlyTrafficData();
+
+            // 24시간 위협 데이터
+            List<Map<String, Object>> threatData = elasticsearchService.getHourlyThreatData();
+
+            // 7일 평균 트래픽 데이터
+            List<Map<String, Object>> averageTraffic = elasticsearchService.getWeeklyAverageTraffic();
+
+            response.put("current", currentTraffic);
+            response.put("threats", threatData);
+            response.put("average", averageTraffic);
+
+            return ResponseEntity.ok(response);
+        } catch (IOException e) {
+            log.error("트래픽 모니터링 데이터 조회 실패", e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @GetMapping("/hourly")
+    @Operation(summary = "시간대별 트래픽 조회", description = "최근 24시간 시간대별 트래픽 데이터를 조회합니다.")
+    public ResponseEntity<List<Map<String, Object>>> getHourlyTraffic() {
+        log.info("=== 시간대별 트래픽 API 호출됨 ===");
+        try {
+            List<Map<String, Object>> data = elasticsearchService.getHourlyTrafficData();
+            log.info("트래픽 데이터 반환: {} 건", data.size());
+            return ResponseEntity.ok(data);
+        } catch (IOException e) {
+            log.error("시간대별 트래픽 조회 실패", e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @GetMapping("/average")
+    @Operation(summary = "7일 평균 트래픽 조회", description = "최근 7일간의 시간대별 평균 트래픽 데이터를 조회합니다.")
+    public ResponseEntity<List<Map<String, Object>>> getAverageTraffic() {
+        try {
+            List<Map<String, Object>> data = elasticsearchService.getWeeklyAverageTraffic();
+            return ResponseEntity.ok(data);
+        } catch (IOException e) {
+            log.error("7일 평균 트래픽 조회 실패", e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+}
