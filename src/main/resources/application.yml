@@ -71,6 +71,9 @@ ot-security:
     packet-index: "ics-packets"
     threat-index: "ics-threats"
 
+  assets:
+    auto-status-update: false
+
   # 페이징 설정
   pagination:
     default-page-size: 20

@@ -2,9 +2,13 @@ package com.ot.security.scheduler;
 
 import com.ot.security.dto.DashboardStatsDTO;
 import com.ot.security.entity.ThreatEvent;
+import com.ot.security.dto.SummaryMetricsDTO;
+import com.ot.security.dto.SystemMetricsDTO;
 import com.ot.security.service.ElasticsearchService;
 import com.ot.security.service.SSEService;
 import com.ot.security.service.AssetManagementService;
+import com.ot.security.service.SummaryMetricsService;
+import com.ot.security.service.SystemMetricsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -22,6 +26,8 @@ public class DataRefreshScheduler {
     private final ElasticsearchService elasticsearchService;
     private final SSEService sseService;
     private final AssetManagementService assetManagementService;
+    private final SummaryMetricsService summaryMetricsService;
+    private final SystemMetricsService systemMetricsService;
 
     private long lastThreatCount = 0;
     private long lastPacketCount = 0;
@@ -57,15 +63,21 @@ public class DataRefreshScheduler {
     }
 
     /**
-     * 30초마다 통계 업데이트 및 SSE 푸시
+     * 0.1초마다 통계 업데이트 및 SSE 푸시
      */
-    @Scheduled(fixedRate = 30000)
+    @Scheduled(fixedRate = 100)
     public void refreshStats() {
         try {
             long totalPackets = elasticsearchService.getTotalPackets();
             long totalThreats = elasticsearchService.getTotalThreats();
             long recentPackets = elasticsearchService.countRecentPackets(5);
             long recentThreats = elasticsearchService.countRecentThreats(5);
+            // 최근 1초 동안의 패킷 수를 조회 (now-1s ~ now)
+            double packetsPerSecond = elasticsearchService.countPacketsBetweenSeconds(1, 0);
+
+            // Summary metrics 자동 계산 및 저장
+            SummaryMetricsDTO summaryMetrics = summaryMetricsService.computeAndStoreMetrics();
+            SystemMetricsDTO metrics = systemMetricsService.getLatestMetrics();
 
             var threatsByLevel = elasticsearchService.aggregateThreatsByLevel();
             var threatsByType = elasticsearchService.aggregateThreatsByType();
@@ -75,9 +87,19 @@ public class DataRefreshScheduler {
                     .totalThreats(totalThreats)
                     .recentPackets(recentPackets)
                     .recentThreats(recentThreats)
-                    .packetsPerSecond(recentPackets / 300.0)
+                    .packetsPerSecond(packetsPerSecond)
                     .threatsByLevel(threatsByLevel)
                     .threatsByType(threatsByType)
+                    .cpuUsage(metrics.getCpuUsage())
+                    .memoryUsage(metrics.getRamUsage())
+                    .gpuUsage(metrics.getGpuUsage())
+                    .unconfirmedAlerts(summaryMetrics.getUnconfirmedAlarms())
+                    .criticalAlerts(summaryMetrics.getCriticalAlarms())
+                    .safetyScore(summaryMetrics.getSafetyScore())
+                    .anomalyDay(summaryMetrics.getAnomalyDay())
+                    .anomalyWeek(summaryMetrics.getAnomalyWeek())
+                    .newIpCount(summaryMetrics.getNewIpCount())
+                    .topologyStatus(assetManagementService.getTopologyStatusSnapshot())
                     .lastUpdate(Instant.now().toString())
                     .build();
 

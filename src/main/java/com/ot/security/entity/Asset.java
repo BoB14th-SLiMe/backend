@@ -44,5 +44,18 @@ public class Asset {
     private Boolean isVisible = true;
 
     @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt = Instant.now();
+    private Instant createdAt;
+
+    @Column(name = "status", length = 20)
+    private String status = "normal";
+
+    @Column(name = "last_seen")
+    private Instant lastSeen;
+
+    @PrePersist
+    protected void onCreate() {
+        if (createdAt == null) {
+            createdAt = Instant.now();
+        }
+    }
 }

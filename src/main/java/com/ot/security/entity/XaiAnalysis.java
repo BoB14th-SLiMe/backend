@@ -30,10 +30,11 @@ public class XaiAnalysis {
     @Column(name = "destination_asset_ip")
     private String destinationAssetIp;
 
-    @Column(name = "detection_engine")
-    private String detectionEngine;
+    @Column(name = "threat_index")
+    private Integer threatIndex;
 
-    private String status;
+    @Column(name = "threat_id", length = 255)
+    private String threatId;
 
     @Column(name = "detection_details", columnDefinition = "TEXT")
     private String detectionDetails;

@@ -1,5 +1,6 @@
 package com.ot.security.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -8,7 +9,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class XaiAnalysisDTO {
 
-    private Integer index;
+    @JsonProperty("threat_index")
+    @JsonAlias("index")
+    private Integer threatIndex;
     private String timestamp;
 
     @JsonProperty("threat_type")

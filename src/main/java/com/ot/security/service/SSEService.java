@@ -7,7 +7,6 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 @Slf4j
@@ -121,6 +120,14 @@ public class SSEService {
     public void sendStats(Object data) {
         sendToEmitters(statsEmitters, "stats", data);
         sendToEmitters(emitters, "stats", data);  // 일반 구독자에게도 전송
+    }
+
+    /**
+     * XAI 분석 업데이트 전송
+     */
+    public void sendAnalysis(Object data) {
+        sendToEmitters(threatEmitters, "analysis", data);
+        sendToEmitters(emitters, "analysis", data);
     }
 
     /**

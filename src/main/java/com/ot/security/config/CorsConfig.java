@@ -14,22 +14,18 @@ public class CorsConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/api/**")
-                    .allowallorigins()
+                    .allowedOriginPatterns("*")
                     .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                     .allowedHeaders("*")
-                    .allowCredentials(true)
+                    .allowCredentials(false)
                     .maxAge(3600);
-                    
+
                 // SSE 엔드포인트 CORS
                 registry.addMapping("/api/sse/**")
-                    .allowedOrigins(
-                        "http://localhost:3000",
-                        "http://localhost:5173",
-                        "http://localhost:5174"
-                    )
+                    .allowedOriginPatterns("*")
                     .allowedMethods("GET", "OPTIONS")
                     .allowedHeaders("*")
-                    .allowCredentials(true)
+                    .allowCredentials(false)
                     .maxAge(3600);
             }
         };

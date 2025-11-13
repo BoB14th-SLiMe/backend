@@ -1,7 +1,8 @@
 package com.ot.security.controller;
 
-import com.ot.security.dto.ThreatFilterDTO;
+import com.ot.security.dto.AdminActionDTO;
 import com.ot.security.dto.PagedResponseDTO;
+import com.ot.security.dto.ThreatFilterDTO;
 import com.ot.security.entity.ThreatEvent;
 import com.ot.security.service.ThreatFilterService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -86,6 +87,24 @@ public class ThreatFilterController {
             return ResponseEntity.ok().build();
         } catch (Exception e) {
             log.error("사후조치 저장 실패: {}", threatId, e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    /**
+     * 관리자 사후조치 조회
+     */
+    @GetMapping("/{threatId}/admin-action")
+    @Operation(summary = "관리자 사후조치 조회", description = "위협에 대한 관리자 사후조치 내용을 조회합니다.")
+    public ResponseEntity<AdminActionDTO> getAdminAction(@PathVariable String threatId) {
+        try {
+            AdminActionDTO action = threatFilterService.getAdminAction(threatId);
+            if (action == null) {
+                return ResponseEntity.noContent().build();
+            }
+            return ResponseEntity.ok(action);
+        } catch (Exception e) {
+            log.error("사후조치 조회 실패: {}", threatId, e);
             return ResponseEntity.internalServerError().build();
         }
     }

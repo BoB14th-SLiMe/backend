@@ -69,6 +69,22 @@ public class AssetController {
     }
 
     /**
+     * 자산 일괄 생성
+     */
+    @PostMapping("/bulk")
+    @Operation(summary = "자산 일괄 생성", description = "여러 자산을 한 번에 생성합니다.")
+    public ResponseEntity<List<AssetDTO>> createAssetsBulk(@RequestBody List<AssetDTO> assets) {
+        try {
+            List<AssetDTO> created = assetManagementService.createAssetsBulk(assets);
+            log.info("{}개의 자산을 일괄 생성했습니다.", created.size());
+            return ResponseEntity.ok(created);
+        } catch (Exception e) {
+            log.error("자산 일괄 생성 실패", e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    /**
      * 자산 생성
      */
     @PostMapping
@@ -121,6 +137,21 @@ public class AssetController {
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
             log.error("자산 삭제 실패: {}", assetId, e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    /**
+     * Elasticsearch에서 활성 장비 목록 조회
+     */
+    @GetMapping("/active")
+    @Operation(summary = "활성 장비 조회", description = "Elasticsearch에서 트래픽이 있는 활성 장비 IP 목록을 조회합니다.")
+    public ResponseEntity<List<String>> getActiveDevices() {
+        try {
+            List<String> activeIps = assetManagementService.getActiveDeviceIps();
+            return ResponseEntity.ok(activeIps);
+        } catch (Exception e) {
+            log.error("활성 장비 조회 실패", e);
             return ResponseEntity.internalServerError().build();
         }
     }

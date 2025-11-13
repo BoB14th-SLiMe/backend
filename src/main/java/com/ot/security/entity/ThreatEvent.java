@@ -20,8 +20,14 @@ public class ThreatEvent {
     private String threatType;  // dos_attack, port_scan, malware, brute_force
     
     @JsonProperty("threat_level")
-    private String threatLevel;  // low, medium, high, critical
-    
+    private String threatLevel;  // critical, warning
+
+    @JsonProperty("detection_engine")
+    private String detectionEngine;  // rule, ml, dl
+
+    @JsonProperty("score")
+    private Double score;
+
     @JsonProperty("src_ip")
     private String srcIp;
     
@@ -48,6 +54,15 @@ public class ThreatEvent {
     private Long bytesTransferred;
     
     private Double confidence;  // 0.0 ~ 1.0
-    
-    private String status;  // detected, investigating, resolved, false_positive
+
+    private String status;  // new, investigating, completed, false_positive
+
+    @JsonProperty("source_asset_name")
+    private String sourceAssetName;
+
+    @JsonProperty("source_asset_note")
+    private String sourceAssetNote;
+
+    @JsonProperty("target_asset_name")
+    private String targetAssetName;
 }

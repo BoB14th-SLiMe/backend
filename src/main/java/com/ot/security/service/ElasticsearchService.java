@@ -2,10 +2,17 @@ package com.ot.security.service;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.SortOrder;
+import co.elastic.clients.elasticsearch._types.FieldValue;
+import co.elastic.clients.elasticsearch._types.aggregations.CalendarInterval;
+import co.elastic.clients.elasticsearch._types.aggregations.CardinalityAggregate;
+import co.elastic.clients.elasticsearch._types.aggregations.DateHistogramAggregate;
+import co.elastic.clients.elasticsearch._types.aggregations.DateHistogramBucket;
 import co.elastic.clients.elasticsearch._types.aggregations.StringTermsAggregate;
 import co.elastic.clients.elasticsearch._types.aggregations.StringTermsBucket;
+import co.elastic.clients.elasticsearch.core.CountResponse;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
+import co.elastic.clients.json.JsonData;
 import com.ot.security.entity.Packet;
 import com.ot.security.entity.ThreatEvent;
 import lombok.RequiredArgsConstructor;
@@ -18,8 +25,12 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -188,6 +199,126 @@ public class ElasticsearchService {
             return 0;
         }
     }
+
+    /**
+     * 최근 N초 패킷 개수
+     */
+    public long countPacketsSinceSeconds(int seconds) throws IOException {
+        if (seconds <= 0) {
+            seconds = 1;
+        }
+        return countPacketsBetweenSeconds(seconds, 0);
+    }
+
+    /**
+     * 지정한 구간(startSecondsAgo ~ endSecondsAgo) 사이의 패킷 개수를 조회한다.
+     * 예: (2, 1)을 넣으면 2초 전부터 1초 전까지 1초 구간의 레코드 수를 반환한다.
+     */
+    public long countPacketsBetweenSeconds(int startSecondsAgo, int endSecondsAgo) throws IOException {
+        if (startSecondsAgo <= endSecondsAgo) {
+            throw new IllegalArgumentException("startSecondsAgo 는 endSecondsAgo 보다 커야 합니다.");
+        }
+
+        Instant now = Instant.now();
+        Instant startInstant = now.minus(startSecondsAgo, ChronoUnit.SECONDS);
+        Instant endInstant = now.minus(endSecondsAgo, ChronoUnit.SECONDS);
+
+        CountResponse response = elasticsearchClient.count(c -> c
+                .index(packetIndex + "-*")
+                .query(q -> q.range(r -> r
+                        .field("@timestamp")
+                        .gte(JsonData.of(startInstant.toString()))
+                        .lt(JsonData.of(endInstant.toString()))
+                ))
+        );
+
+        return response.count();
+    }
+
+
+    /**
+     * 최근 N분 내 특정 레벨의 위협 개수
+     */
+    public long countThreatsByLevelsSince(List<String> levels, int minutes) throws IOException {
+        if (levels == null || levels.isEmpty()) {
+            return countRecentThreats(minutes);
+        }
+        List<FieldValue> levelValues = toFieldValues(levels);
+        if (levelValues.isEmpty()) {
+            return 0;
+        }
+
+        try {
+            String timestamp = Instant.now().minus(minutes, ChronoUnit.MINUTES).toString();
+
+            SearchResponse<ThreatEvent> response = elasticsearchClient.search(s -> s
+                    .index(threatIndex + "-*")
+                    .size(0)
+                    .query(q -> q.bool(b -> b
+                            .must(m -> m.range(r -> r
+                                    .field("@timestamp")
+                                    .gte(JsonData.of(timestamp))
+                            ))
+                            .must(m -> m.terms(t -> t
+                                    .field("threat_level.keyword")
+                                    .terms(tt -> tt.value(levelValues))
+                            ))
+                    )),
+                    ThreatEvent.class
+            );
+
+            return response.hits().total().value();
+        } catch (Exception e) {
+            log.warn("레벨별 위협 카운트 실패: {}", e.getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * 최근 N분 내 특정 상태 위협 개수
+     */
+    public long countThreatsByStatusesSince(List<String> statuses, int minutes) throws IOException {
+        if (statuses == null || statuses.isEmpty()) {
+            return countRecentThreats(minutes);
+        }
+        List<FieldValue> statusValues = toFieldValues(statuses);
+        if (statusValues.isEmpty()) {
+            return 0;
+        }
+
+        try {
+            String timestamp = Instant.now().minus(minutes, ChronoUnit.MINUTES).toString();
+
+            SearchResponse<ThreatEvent> response = elasticsearchClient.search(s -> s
+                    .index(threatIndex + "-*")
+                    .size(0)
+                    .query(q -> q.bool(b -> b
+                            .must(m -> m.range(r -> r
+                                    .field("@timestamp")
+                                    .gte(JsonData.of(timestamp))
+                            ))
+                            .must(m -> m.terms(t -> t
+                                    .field("status.keyword")
+                                    .terms(tt -> tt.value(statusValues))
+                            ))
+                    )),
+                    ThreatEvent.class
+            );
+
+            return response.hits().total().value();
+        } catch (Exception e) {
+            log.warn("상태별 위협 카운트 실패: {}", e.getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * 최근 N분 내 출발지 IP 기준 유니크 카운트
+     */
+    public long countUniqueSourceIps(int minutes) throws IOException {
+        return getUniqueSourceIps(minutes).size();
+    }
+
 
     /**
      * 위협 레벨별 집계
@@ -581,6 +712,202 @@ public class ElasticsearchService {
             log.error("7일 평균 트래픽 데이터 조회 실패: {}", e.getMessage());
             return new ArrayList<>();
         }
+    }
+
+    /**
+     * 7일간 프로토콜 분포 (일별)
+     */
+    public List<Map<String, Object>> getWeeklyProtocolDistribution() throws IOException {
+        try {
+            Instant now = Instant.now();
+            Instant weekAgo = now.minus(7, ChronoUnit.DAYS);
+
+            // 7일간 일별 프로토콜 집계
+            SearchResponse<Packet> response = elasticsearchClient.search(s -> s
+                .index(packetIndex + "-*")
+                .size(0)
+                .query(q -> q
+                    .range(r -> r
+                        .field("@timestamp")
+                        .gte(JsonData.of(weekAgo.toString()))
+                        .lt(JsonData.of(now.toString()))
+                    )
+                )
+                .aggregations("by_day", agg -> agg
+                    .dateHistogram(dh -> dh
+                        .field("@timestamp")
+                        .calendarInterval(CalendarInterval.Day)
+                    )
+                    .aggregations("by_protocol", subAgg -> subAgg
+                        .terms(t -> t
+                            .field("protocol.keyword")
+                            .size(20)
+                        )
+                    )
+                ),
+                Packet.class
+            );
+
+            List<Map<String, Object>> result = new ArrayList<>();
+
+            if (response.aggregations().get("by_day") != null) {
+                DateHistogramAggregate byDay = response.aggregations()
+                    .get("by_day")
+                    .dateHistogram();
+
+                for (DateHistogramBucket dayBucket : byDay.buckets().array()) {
+                    Map<String, Object> dayData = new HashMap<>();
+                    dayData.put("date", dayBucket.keyAsString());
+                    dayData.put("timestamp", dayBucket.key());
+
+                    Map<String, Long> protocols = new HashMap<>();
+                    if (dayBucket.aggregations().get("by_protocol") != null) {
+                        StringTermsAggregate byProtocol = dayBucket.aggregations()
+                            .get("by_protocol")
+                            .sterms();
+
+                        for (StringTermsBucket protocolBucket : byProtocol.buckets().array()) {
+                            protocols.put(protocolBucket.key().stringValue(), protocolBucket.docCount());
+                        }
+                    }
+
+                    dayData.put("protocols", protocols);
+                    dayData.put("total", dayBucket.docCount());
+                    result.add(dayData);
+                }
+            }
+
+            return result;
+        } catch (Exception e) {
+            log.error("7일간 프로토콜 분포 조회 실패: {}", e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
+    /**
+     * Elasticsearch에서 활성 장비 IP 목록 조회
+     * (최근 5분 내 src_ip 또는 dst_ip로 트래픽이 있는 IP)
+     */
+    public List<String> getActiveDeviceIps() throws IOException {
+        try {
+            String timestamp = Instant.now().minus(5, ChronoUnit.MINUTES).toString();
+
+            // src_ip aggregation
+            SearchResponse<Packet> response = elasticsearchClient.search(s -> s
+                .index(packetIndex + "-*")
+                .size(0)
+                .query(q -> q.range(r -> r
+                    .field("@timestamp")
+                    .gte(co.elastic.clients.json.JsonData.of(timestamp))
+                ))
+                .aggregations("src_ips", agg -> agg.terms(t -> t
+                    .field("src_ip.keyword")
+                    .size(1000)
+                ))
+                .aggregations("dst_ips", agg -> agg.terms(t -> t
+                    .field("dst_ip.keyword")
+                    .size(1000)
+                )),
+                Packet.class
+            );
+
+            Set<String> activeIps = new HashSet<>();
+
+            // src_ip 수집
+            if (response.aggregations().get("src_ips") != null) {
+                StringTermsAggregate srcIps = response.aggregations()
+                    .get("src_ips")
+                    .sterms();
+                for (var bucket : srcIps.buckets().array()) {
+                    activeIps.add(bucket.key().stringValue());
+                }
+            }
+
+            // dst_ip 수집
+            if (response.aggregations().get("dst_ips") != null) {
+                StringTermsAggregate dstIps = response.aggregations()
+                    .get("dst_ips")
+                    .sterms();
+                for (var bucket : dstIps.buckets().array()) {
+                    activeIps.add(bucket.key().stringValue());
+                }
+            }
+
+            log.debug("활성 장비 IP 개수: {}", activeIps.size());
+            return new ArrayList<>(activeIps);
+        } catch (Exception e) {
+            log.error("활성 장비 IP 조회 실패", e);
+            return new ArrayList<>();
+        }
+    }
+
+    public Set<String> getUniqueSourceIps(int minutes) throws IOException {
+        try {
+            String timestamp = Instant.now().minus(minutes, ChronoUnit.MINUTES).toString();
+            SearchResponse<ThreatEvent> response = elasticsearchClient.search(s -> s
+                            .index(threatIndex + "-*")
+                            .size(0)
+                            .query(q -> q.range(r -> r
+                                    .field("@timestamp")
+                                    .gte(JsonData.of(timestamp))
+                            ))
+                            .aggregations("src_ips", agg -> agg.terms(t -> t
+                                    .field("src_ip.keyword")
+                                    .size(2000)
+                            )),
+                    ThreatEvent.class
+            );
+
+            Set<String> ips = new HashSet<>();
+            if (response.aggregations().get("src_ips") != null) {
+                StringTermsAggregate agg = response.aggregations()
+                        .get("src_ips")
+                        .sterms();
+                agg.buckets().array().forEach(bucket -> ips.add(bucket.key().stringValue()));
+            }
+            return ips;
+        } catch (Exception e) {
+            log.warn("고유 출발지 IP 조회 실패: {}", e.getMessage());
+            return new HashSet<>();
+        }
+    }
+
+    public List<ThreatEvent> searchRecentThreats(int minutes, int size) throws IOException {
+        try {
+            String timestamp = Instant.now().minus(minutes, ChronoUnit.MINUTES).toString();
+
+            SearchResponse<ThreatEvent> response = elasticsearchClient.search(s -> s
+                            .index(threatIndex + "-*")
+                            .size(size)
+                            .query(q -> q.range(r -> r
+                                    .field("@timestamp")
+                                    .gte(JsonData.of(timestamp))
+                            ))
+                            .sort(sort -> sort.field(f -> f
+                                    .field("@timestamp")
+                                    .order(SortOrder.Desc)
+                            )),
+                    ThreatEvent.class
+            );
+
+            List<ThreatEvent> threats = new ArrayList<>();
+            for (Hit<ThreatEvent> hit : response.hits().hits()) {
+                threats.add(hit.source());
+            }
+            return threats;
+        } catch (Exception e) {
+            log.warn("최근 위협 조회 실패: {}", e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
+    private List<FieldValue> toFieldValues(List<String> values) {
+        return values.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .map(FieldValue::of)
+                .collect(Collectors.toList());
     }
 
 }

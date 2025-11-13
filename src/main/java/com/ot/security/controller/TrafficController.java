@@ -1,5 +1,6 @@
 package com.ot.security.controller;
 
+import com.ot.security.repository.AssetRepository;
 import com.ot.security.service.ElasticsearchService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -21,6 +22,7 @@ import java.util.Map;
 public class TrafficController {
 
     private final ElasticsearchService elasticsearchService;
+    private final AssetRepository assetRepository;
 
     @GetMapping("/monitoring")
     @Operation(summary = "트래픽 모니터링 데이터 조회", description = "24시간 트래픽 데이터와 7일 평균 데이터를 조회합니다.")
@@ -70,6 +72,26 @@ public class TrafficController {
             return ResponseEntity.ok(data);
         } catch (IOException e) {
             log.error("7일 평균 트래픽 조회 실패", e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @GetMapping("/network-stats")
+    @Operation(summary = "네트워크 통계 조회", description = "현재 네트워크 연결 수와 PPS를 조회합니다.")
+    public ResponseEntity<Map<String, Object>> getNetworkStats() {
+        try {
+            long recentPackets = elasticsearchService.countPacketsBetweenSeconds(2, 1);
+            double pps = recentPackets;
+
+            long connections = assetRepository.countByAssetTypeInAndIsVisibleTrue(List.of("hmi", "plc"));
+
+            Map<String, Object> stats = new HashMap<>();
+            stats.put("pps", Math.round(pps * 100.0) / 100.0);
+            stats.put("connections", connections);
+
+            return ResponseEntity.ok(stats);
+        } catch (IOException e) {
+            log.error("네트워크 통계 조회 실패", e);
             return ResponseEntity.internalServerError().build();
         }
     }

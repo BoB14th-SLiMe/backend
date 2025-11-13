@@ -1,5 +1,6 @@
 package com.ot.security.dto;
 
+import com.ot.security.dto.TopologyStatusDTO;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -42,6 +43,14 @@ public class DashboardStatsDTO {
     private String systemStatus;  // healthy, warning, critical
     private Double cpuUsage;
     private Double memoryUsage;
+    private Double gpuUsage;
+    private Long unconfirmedAlerts;
+    private Long criticalAlerts;
+    private Integer safetyScore;
+    private Long anomalyDay;
+    private Long anomalyWeek;
+    private Long newIpCount;
+    private TopologyStatusDTO topologyStatus;
     
     // 타임스탬프
     private String lastUpdate;

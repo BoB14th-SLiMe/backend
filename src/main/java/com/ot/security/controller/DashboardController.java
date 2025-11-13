@@ -1,7 +1,11 @@
 package com.ot.security.controller;
 
 import com.ot.security.dto.DashboardStatsDTO;
+import com.ot.security.dto.SummaryMetricsDTO;
+import com.ot.security.dto.SystemMetricsDTO;
 import com.ot.security.service.ElasticsearchService;
+import com.ot.security.service.SummaryMetricsService;
+import com.ot.security.service.SystemMetricsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +26,8 @@ import java.time.Instant;
 public class DashboardController {
 
     private final ElasticsearchService elasticsearchService;
+    private final SystemMetricsService systemMetricsService;
+    private final SummaryMetricsService summaryMetricsService;
 
     @GetMapping("/stats")
     @Operation(summary = "대시보드 통계 조회", description = "전체 시스템 통계 및 실시간 데이터를 조회합니다.")
@@ -43,6 +49,10 @@ public class DashboardController {
             var topAttackerIps = elasticsearchService.getTopAttackerIps(5);
             var topTargetIps = elasticsearchService.getTopTargetIps(5);
             
+            // 시스템 메트릭 조회
+            SystemMetricsDTO metrics = systemMetricsService.getLatestMetrics();
+            SummaryMetricsDTO summaryMetrics = summaryMetricsService.getSummaryMetrics();
+
             // 시스템 상태 판단
             String systemStatus = "healthy";
             if (recentThreats > 100) {
@@ -50,7 +60,7 @@ public class DashboardController {
             } else if (recentThreats > 10) {
                 systemStatus = "warning";
             }
-            
+
             DashboardStatsDTO stats = DashboardStatsDTO.builder()
                 .totalPackets(totalPackets)
                 .totalThreats(totalThreats)
@@ -64,8 +74,15 @@ public class DashboardController {
                 .topAttackerIps(topAttackerIps)
                 .topTargetIps(topTargetIps)
                 .systemStatus(systemStatus)
-                .cpuUsage(0.0)   // TODO: 실제 시스템 메트릭
-                .memoryUsage(0.0)
+                .cpuUsage(metrics.getCpuUsage())
+                .memoryUsage(metrics.getRamUsage())
+                .gpuUsage(metrics.getGpuUsage())
+                .unconfirmedAlerts(summaryMetrics.getUnconfirmedAlarms())
+                .criticalAlerts(summaryMetrics.getCriticalAlarms())
+                .safetyScore(summaryMetrics.getSafetyScore())
+                .anomalyDay(summaryMetrics.getAnomalyDay())
+                .anomalyWeek(summaryMetrics.getAnomalyWeek())
+                .newIpCount(summaryMetrics.getNewIpCount())
                 .lastUpdate(Instant.now().toString())
                 .build();
             

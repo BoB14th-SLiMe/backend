@@ -12,6 +12,7 @@ public interface AssetRepository extends JpaRepository<Asset, Long> {
     Optional<Asset> findByAssetId(String assetId);
     List<Asset> findByAssetType(String assetType);
     List<Asset> findByIsVisible(Boolean isVisible);
+    long countByAssetTypeInAndIsVisibleTrue(List<String> assetTypes);
 
     @Query("SELECT a FROM Asset a WHERE a.ipAddress = :ipAddress")
     Optional<Asset> findByIpAddress(String ipAddress);
