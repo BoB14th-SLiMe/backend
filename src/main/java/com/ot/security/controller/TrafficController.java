@@ -80,8 +80,9 @@ public class TrafficController {
     @Operation(summary = "네트워크 통계 조회", description = "현재 네트워크 연결 수와 PPS를 조회합니다.")
     public ResponseEntity<Map<String, Object>> getNetworkStats() {
         try {
-            long recentPackets = elasticsearchService.countPacketsBetweenSeconds(2, 1);
-            double pps = recentPackets;
+            // 최근 5초 구간의 평균 PPS 계산 (안정적인 값을 위해)
+            long recentPackets = elasticsearchService.countPacketsBetweenSeconds(5, 0);
+            double pps = recentPackets / 5.0;
 
             long connections = assetRepository.countByAssetTypeInAndIsVisibleTrue(List.of("hmi", "plc"));
 

@@ -72,8 +72,9 @@ public class DataRefreshScheduler {
             long totalThreats = elasticsearchService.getTotalThreats();
             long recentPackets = elasticsearchService.countRecentPackets(5);
             long recentThreats = elasticsearchService.countRecentThreats(5);
-            // 최근 1초 동안의 패킷 수를 조회 (now-1s ~ now)
-            double packetsPerSecond = elasticsearchService.countPacketsBetweenSeconds(1, 0);
+            // 최근 5초 동안의 패킷 수 평균을 조회하여 안정적인 PPS 계산 (now-5s ~ now)
+            // 짧은 구간(1초)을 사용하면 Elasticsearch 인덱싱 지연으로 인해 값이 불안정해짐
+            double packetsPerSecond = elasticsearchService.countPacketsBetweenSeconds(5, 0) / 5.0;
 
             // Summary metrics 자동 계산 및 저장
             SummaryMetricsDTO summaryMetrics = summaryMetricsService.computeAndStoreMetrics();
