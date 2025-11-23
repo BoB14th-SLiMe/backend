@@ -135,16 +135,45 @@ INSERT INTO banner_metrics_config (metric_key, label, is_enabled, display_order)
   ('gpu', 'GPU 사용량', true, 9)
 ON CONFLICT (metric_key) DO NOTHING;
 
--- 샘플 자산 데이터
+-- 실제 자산 데이터
 INSERT INTO assets (asset_type, asset_id, ip_address, mac_address, name, position_x, position_y, is_visible, created_at, status, last_seen) VALUES
-  ('scada', 'SCADA-001', '192.168.0.2', '00:1A:2B:3C:4D:5E', 'SCADA 메인', 500, 100, true, NOW(), 'normal', NOW()),
-  ('switch', 'SWITCH-001', '192.168.0.1', '00:1A:2B:3C:4D:5F', 'Core Switch', 500, 300, true, NOW(), 'normal', NOW()),
-  ('plc', 'PLC-101', '192.168.0.101', 'AA:BB:CC:DD:EE:01', 'PLC-101', 200, 500, true, NOW(), 'normal', NOW()),
-  ('plc', 'PLC-102', '192.168.0.102', 'AA:BB:CC:DD:EE:02', 'PLC-102', 400, 500, true, NOW(), 'normal', NOW()),
-  ('plc', 'PLC-103', '192.168.0.103', 'AA:BB:CC:DD:EE:03', 'PLC-103', 600, 500, true, NOW(), 'normal', NOW()),
-  ('plc', 'PLC-104', '192.168.0.104', 'AA:BB:CC:DD:EE:04', 'PLC-104', 800, 500, true, NOW(), 'normal', NOW()),
-  ('hmi', 'HMI-001', '192.168.0.50', 'BB:CC:DD:EE:FF:01', 'HMI-001', 300, 200, true, NOW(), 'normal', NOW()),
-  ('hmi', 'HMI-002', '192.168.0.51', 'BB:CC:DD:EE:FF:02', 'HMI-002', 700, 200, true, NOW(), 'normal', NOW())
+  -- 스위치 Management
+  ('switch', 'SWITCH-001', '192.168.1.1', '00:1A:2B:3C:01:01', '스위치 Management', 100, 100, true, NOW(), 'normal', NOW()),
+  ('switch', 'SWITCH-002', '192.168.1.10', '00:1A:2B:3C:01:0A', '스위치 Management', 200, 100, true, NOW(), 'normal', NOW()),
+  ('switch', 'SWITCH-003', '192.168.1.11', '00:1A:2B:3C:01:0B', '스위치 Management', 300, 100, true, NOW(), 'normal', NOW()),
+  ('switch', 'SWITCH-004', '192.168.1.133', '00:1A:2B:3C:01:85', '스위치 Management', 400, 100, true, NOW(), 'normal', NOW()),
+  ('switch', 'SWITCH-005', '192.168.1.158', '00:1A:2B:3C:01:9E', '스위치 Management', 500, 100, true, NOW(), 'normal', NOW()),
+  ('switch', 'SWITCH-006', '192.168.1.184', '00:1A:2B:3C:01:B8', '스위치 Management', 600, 100, true, NOW(), 'normal', NOW()),
+  ('switch', 'SWITCH-007', '192.168.1.233', '00:1A:2B:3C:01:E9', '스위치 Management', 700, 100, true, NOW(), 'normal', NOW()),
+  ('switch', 'SWITCH-008', '192.168.1.245', '00:1A:2B:3C:01:F5', '스위치 Management', 800, 100, true, NOW(), 'normal', NOW()),
+  ('switch', 'SWITCH-009', '192.168.1.254', '00:1A:2B:3C:01:FE', '스위치 Management', 900, 100, true, NOW(), 'normal', NOW()),
+
+  -- 서버
+  ('server', 'SERVER-AD', '192.168.10.100', '00:1A:2B:10:01:00', 'Active Directory 서버', 100, 300, true, NOW(), 'normal', NOW()),
+  ('server', 'SERVER-BACKUP', '192.168.10.101', '00:1A:2B:10:01:01', '백업 서버', 200, 300, true, NOW(), 'normal', NOW()),
+  ('server', 'SERVER-PENTEST', '192.168.10.102', '00:1A:2B:10:01:02', '모의 침투 테스트 서버', 300, 300, true, NOW(), 'normal', NOW()),
+  ('server', 'SERVER-MES', '192.168.10.103', '00:1A:2B:10:01:03', '통합 공정 관리 시스템 서버', 400, 300, true, NOW(), 'normal', NOW()),
+  ('server', 'SERVER-MAIL', '192.168.10.106', '00:1A:2B:10:01:06', 'Mail Server', 500, 300, true, NOW(), 'normal', NOW()),
+  ('server', 'SERVER-COVERITY', '192.168.10.202', '00:1A:2B:10:02:02', 'Coverity Server', 600, 300, true, NOW(), 'normal', NOW()),
+  ('server', 'SERVER-NTP', '194.0.5.123', '00:1A:2B:C2:05:7B', 'NTP 서버', 700, 300, true, NOW(), 'normal', NOW()),
+
+  -- PLC
+  ('plc', 'PLC-LS', '192.168.10.15', 'AA:BB:CC:10:00:15', 'LS Electric PLC', 100, 500, true, NOW(), 'normal', NOW()),
+  ('plc', 'PLC-MITSU-HIDDEN', '192.168.10.39', 'AA:BB:CC:10:00:39', 'Mitsubishi PLC (Hidden)', 200, 500, true, NOW(), 'normal', NOW()),
+  ('plc', 'PLC-MITSU-WALL', '192.168.10.45', 'AA:BB:CC:10:00:45', 'Mitsubishi PLC (Wall)', 300, 500, true, NOW(), 'normal', NOW()),
+  ('plc', 'PLC-SIEMENS', '192.168.10.47', 'AA:BB:CC:10:00:47', 'Siemens PLC', 400, 500, true, NOW(), 'normal', NOW()),
+
+  -- HMI
+  ('hmi', 'HMI-BLENDING', '192.168.10.80', 'BB:CC:DD:10:00:80', 'HMI 1(Blending)', 100, 700, true, NOW(), 'normal', NOW()),
+  ('hmi', 'HMI-LABELING', '192.168.10.81', 'BB:CC:DD:10:00:81', 'HMI 2(Labeling)', 200, 700, true, NOW(), 'normal', NOW()),
+  ('hmi', 'HMI-ROBOT', '192.168.10.82', 'BB:CC:DD:10:00:82', 'HMI 3(Robot)', 300, 700, true, NOW(), 'normal', NOW()),
+
+  -- PC/Workstation
+  ('workstation', 'PC-TARGET', '192.168.10.105', 'CC:DD:EE:10:01:05', '공격 대상 PC', 500, 500, true, NOW(), 'normal', NOW()),
+  ('workstation', 'LAPTOP-ASUS', '192.168.10.151', 'CC:DD:EE:10:01:51', 'ASUS Laptop', 600, 500, true, NOW(), 'normal', NOW()),
+  ('workstation', 'PC-OT-DATA', '192.168.10.171', 'CC:DD:EE:10:01:71', 'OT 데이터 수집 PC', 700, 500, true, NOW(), 'normal', NOW()),
+  ('workstation', 'LAPTOP-LG', '192.168.10.172', 'CC:DD:EE:10:01:72', 'LG Laptop', 800, 500, true, NOW(), 'normal', NOW()),
+  ('workstation', 'LAPTOP-METASPLOIT', '192.168.10.33', 'CC:DD:EE:10:00:33', 'Metasploit Laptop', 900, 500, true, NOW(), 'normal', NOW())
 ON CONFLICT (asset_id) DO NOTHING;
 
 -- 위협 이벤트 더미 데이터
