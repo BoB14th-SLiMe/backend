@@ -45,3 +45,5 @@ desktop.ini
 *.swo
 *.bak
 *.tmp
+### SQL ###
+init.sql
