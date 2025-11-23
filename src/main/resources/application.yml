@@ -65,6 +65,9 @@ ot-security:
   # 데이터 새로고침 간격
   refresh-interval: 5000  # 5초
 
+  # 데이터 보존 기간 (일 단위)
+  data-retention-days: 3  # 3일간의 트래픽 데이터만 유지
+
   # Elasticsearch 인덱스 설정
   elasticsearch:
     index-prefix: "ics"
