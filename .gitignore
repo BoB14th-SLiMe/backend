@@ -37,6 +37,9 @@ logs/
 .env.local
 .env.*.local
 
+### SQL ###
+init.sql
+
 ### OS / Editor temp ###
 Thumbs.db
 ehthumbs.db
