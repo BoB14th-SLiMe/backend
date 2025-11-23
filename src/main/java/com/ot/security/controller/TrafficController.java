@@ -81,8 +81,8 @@ public class TrafficController {
     public ResponseEntity<Map<String, Object>> getNetworkStats() {
         try {
             // 최근 5초 구간의 평균 PPS 계산 (안정적인 값을 위해)
-            long recentPackets = elasticsearchService.countPacketsBetweenSeconds(5, 0);
-            double pps = recentPackets / 5.0;
+            long recentPackets = elasticsearchService.countPacketsBetweenSeconds(4, 3);
+            double pps = recentPackets;
 
             long connections = assetRepository.countByAssetTypeInAndIsVisibleTrue(List.of("hmi", "plc"));
 
