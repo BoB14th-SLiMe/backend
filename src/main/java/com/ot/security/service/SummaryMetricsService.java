@@ -39,6 +39,7 @@ public class SummaryMetricsService {
     private final SummaryMetricsRepository summaryMetricsRepository;
     private final ThreatMapper threatMapper;
     private final XaiAnalysisRepository xaiAnalysisRepository;
+    private final ElasticsearchService elasticsearchService;
 
     @Transactional
     public SummaryMetricsDTO computeAndStoreMetrics() {
@@ -110,7 +111,8 @@ public class SummaryMetricsService {
                 .filter(ip -> assetRepository.findByIpAddress(ip).isEmpty())
                 .collect(Collectors.toSet());
 
-        int riskScore = calculateRiskScore(criticalAlerts, warningAlerts);
+        // 위협 점수 계산: Elasticsearch에서 신규 상태 threat의 score 합산
+        int riskScore = calculateThreatScoreSum();
 
         return SummaryMetricsDTO.builder()
                 .safetyScore(riskScore)
@@ -173,18 +175,28 @@ public class SummaryMetricsService {
     }
 
     /**
-     * 위험점수 계산
-     * - 신규(status='신규') 상태의 warning threat: 80점
-     * - 신규(status='신규') 상태의 attention threat: 30점
+     * 위협점수 계산: Elasticsearch에서 신규 상태 threat의 score 합산
      * - 최대 100점으로 제한
      *
-     * @param criticalAlerts warning 레벨의 신규 threat 수
-     * @param warningAlerts attention 레벨의 신규 threat 수
-     * @return 위험점수 (0-100)
+     * @return 위협점수 (0-100)
      */
-    private int calculateRiskScore(long criticalAlerts, long warningAlerts) {
-        int score = (int) ((criticalAlerts * 80) + (warningAlerts * 30));
-        return Math.min(100, Math.max(0, score));
+    private int calculateThreatScoreSum() {
+        try {
+            // Elasticsearch에서 모든 위협을 가져와서 신규 상태만 필터링
+            List<ThreatEvent> threats = elasticsearchService.searchThreats(0, 1000);
+
+            double totalScore = threats.stream()
+                    .filter(threat -> threat.getStatus() != null &&
+                            NEW_STATUS_KEYS.contains(threat.getStatus().toLowerCase()))
+                    .mapToDouble(threat -> threat.getScore() != null ? threat.getScore() : 0.0)
+                    .sum();
+
+            // 100점 만점으로 제한
+            return (int) Math.min(100, Math.max(0, totalScore));
+        } catch (Exception e) {
+            log.error("위협 점수 계산 실패", e);
+            return 0;
+        }
     }
 
     private String mapSeverity(String threatLevel) {

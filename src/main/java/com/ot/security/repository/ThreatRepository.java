@@ -22,6 +22,8 @@ public interface ThreatRepository extends JpaRepository<Threat, String>, JpaSpec
     Optional<Threat> findTopByOrderByThreatIndexDesc();
 
     long countByEventTimestampAfter(Instant since);
+    long countByEventTimestampBetween(Instant start, Instant end);
+    long countByThreatLevelAndEventTimestampAfter(String threatLevel, Instant since);
 
     @Query("SELECT COUNT(t) FROM Threat t WHERE LOWER(t.status) IN :statuses")
     long countByStatusInIgnoreCase(@Param("statuses") Collection<String> statuses);
