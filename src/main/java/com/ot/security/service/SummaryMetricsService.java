@@ -182,17 +182,29 @@ public class SummaryMetricsService {
      */
     private int calculateThreatScoreSum() {
         try {
+            log.info("위협 점수 계산 시작");
             // Elasticsearch에서 모든 위협을 가져와서 신규 상태만 필터링
             List<ThreatEvent> threats = elasticsearchService.searchThreats(0, 1000);
+            log.info("조회된 총 위협 수: {}", threats.size());
 
             double totalScore = threats.stream()
-                    .filter(threat -> threat.getStatus() != null &&
-                            NEW_STATUS_KEYS.contains(threat.getStatus().toLowerCase()))
+                    .filter(threat -> {
+                        String status = threat.getStatus();
+                        boolean isNew = status != null && NEW_STATUS_KEYS.contains(status.toLowerCase());
+                        if (isNew) {
+                            log.debug("신규 위협 발견: ID={}, status={}, score={}", threat.getThreatId(), status, threat.getScore());
+                        }
+                        return isNew;
+                    })
                     .mapToDouble(threat -> threat.getScore() != null ? threat.getScore() : 0.0)
                     .sum();
 
+            log.info("신규 위협 점수 합계: {}", totalScore);
+
             // 100점 만점으로 제한
-            return (int) Math.min(100, Math.max(0, totalScore));
+            int finalScore = (int) Math.min(100, Math.max(0, totalScore));
+            log.info("최종 위협 점수: {}", finalScore);
+            return finalScore;
         } catch (Exception e) {
             log.error("위협 점수 계산 실패", e);
             return 0;
