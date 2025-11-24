@@ -80,13 +80,13 @@ public class TrafficController {
     @Operation(summary = "네트워크 통계 조회", description = "현재 네트워크 연결 수와 PPS를 조회합니다.")
     public ResponseEntity<Map<String, Object>> getNetworkStats() {
         try {
-            // 최근 60초 동안의 평균 PPS 계산 (더 안정적인 값)
-            long recentPackets = elasticsearchService.countPacketsBetweenSeconds(60, 0);
-            double pps = recentPackets / 60.0; // 60초로 나누어 초당 패킷 수 계산
+            // 3~4초 전 1초 동안의 패킷 수 = PPS
+            long recentPackets = elasticsearchService.countPacketsBetweenSeconds(4, 3);
+            double pps = recentPackets;
 
             long connections = assetRepository.countByAssetTypeInAndIsVisibleTrue(List.of("hmi", "plc"));
 
-            log.info("네트워크 통계 - 총 패킷: {}, PPS: {}, 연결: {}", recentPackets, pps, connections);
+            log.info("네트워크 통계 - 1초간 패킷 수: {}, PPS: {}, 연결: {}", recentPackets, pps, connections);
 
             Map<String, Object> stats = new HashMap<>();
             stats.put("packetsPerSecond", Math.round(pps * 100.0) / 100.0);
