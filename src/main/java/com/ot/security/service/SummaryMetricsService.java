@@ -39,7 +39,6 @@ public class SummaryMetricsService {
     private final SummaryMetricsRepository summaryMetricsRepository;
     private final ThreatMapper threatMapper;
     private final XaiAnalysisRepository xaiAnalysisRepository;
-    private final ElasticsearchService elasticsearchService;
 
     @Transactional
     public SummaryMetricsDTO computeAndStoreMetrics() {
@@ -175,27 +174,27 @@ public class SummaryMetricsService {
     }
 
     /**
-     * 위협점수 계산: Elasticsearch에서 신규 상태 threat의 score 합산
+     * 위협점수 계산: PostgreSQL에서 신규 상태 threat의 score 합산
      * - 최대 100점으로 제한
      *
      * @return 위협점수 (0-100)
      */
     private int calculateThreatScoreSum() {
         try {
-            log.info("위협 점수 계산 시작");
-            // Elasticsearch에서 모든 위협을 가져와서 신규 상태만 필터링
-            List<ThreatEvent> threats = elasticsearchService.searchThreats(0, 1000);
-            log.info("조회된 총 위협 수: {}", threats.size());
+            log.info("위협 점수 계산 시작 (PostgreSQL)");
+
+            // PostgreSQL에서 신규 상태 위협 조회
+            Pageable pageable = PageRequest.of(0, 1000, Sort.by(Sort.Direction.DESC, "eventTimestamp"));
+            Page<Threat> threats = threatRepository.findByStatusInIgnoreCase(
+                    NEW_STATUS_KEYS.stream().map(String::toLowerCase).collect(Collectors.toUnmodifiableList()),
+                    pageable
+            );
+
+            log.info("조회된 신규 위협 수: {}", threats.getTotalElements());
 
             double totalScore = threats.stream()
-                    .filter(threat -> {
-                        String status = threat.getStatus();
-                        boolean isNew = status != null && NEW_STATUS_KEYS.contains(status.toLowerCase());
-                        if (isNew) {
-                            log.debug("신규 위협 발견: ID={}, status={}, score={}", threat.getThreatId(), status, threat.getScore());
-                        }
-                        return isNew;
-                    })
+                    .peek(threat -> log.debug("신규 위협: ID={}, status={}, score={}",
+                            threat.getThreatId(), threat.getStatus(), threat.getScore()))
                     .mapToDouble(threat -> threat.getScore() != null ? threat.getScore() : 0.0)
                     .sum();
 
