@@ -87,7 +87,7 @@ public class TrafficController {
             long connections = assetRepository.countByAssetTypeInAndIsVisibleTrue(List.of("hmi", "plc"));
 
             Map<String, Object> stats = new HashMap<>();
-            stats.put("pps", Math.round(pps * 100.0) / 100.0);
+            stats.put("packetsPerSecond", Math.round(pps * 100.0) / 100.0);
             stats.put("connections", connections);
 
             return ResponseEntity.ok(stats);
