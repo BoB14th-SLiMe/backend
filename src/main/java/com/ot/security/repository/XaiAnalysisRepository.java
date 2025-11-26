@@ -13,18 +13,19 @@ import java.util.Optional;
 @Repository
 public interface XaiAnalysisRepository extends JpaRepository<XaiAnalysis, Long> {
     // 최신순 조회
-    Page<XaiAnalysis> findAllByOrderByTimestampDesc(Pageable pageable);
+    Page<XaiAnalysis> findAllByOrderByCreatedAtDesc(Pageable pageable);
 
     // 특정 기간 내 조회
-    List<XaiAnalysis> findByTimestampBetweenOrderByTimestampDesc(Instant start, Instant end);
+    List<XaiAnalysis> findByCreatedAtBetweenOrderByCreatedAtDesc(Instant start, Instant end);
 
     // 최근 N건 조회
-    List<XaiAnalysis> findTop10ByOrderByTimestampDesc();
+    List<XaiAnalysis> findTop10ByOrderByCreatedAtDesc();
 
     // 특정 시점 이후의 데이터 개수 조회 (배너 통계용)
-    long countByTimestampAfter(Instant timestamp);
+    long countByCreatedAtAfter(Instant timestamp);
 
-    Optional<XaiAnalysis> findTop1ByThreatIndexOrderByTimestampDesc(Integer threatIndex);
+    // Threat 관계를 통한 조회
+    Optional<XaiAnalysis> findByThreat_ThreatIndex(Integer threatIndex);
 
-    Optional<XaiAnalysis> findTop1ByThreatIdOrderByTimestampDesc(String threatId);
+    Optional<XaiAnalysis> findByThreat_ThreatId(String threatId);
 }

@@ -56,14 +56,14 @@ class SummaryMetricsServiceTest {
                 .status("신규")
                 .build());
 
-        xaiAnalysisRepository.save(XaiAnalysis.builder()
-                .threatId(threat.getThreatId())
-                .threatIndex(threat.getThreatIndex())
-                .timestamp(timestamp)
+        XaiAnalysis analysis = XaiAnalysis.builder()
+                .threat(threat)
                 .detectionDetails("DL engine detected path tampering")
                 .violation("Port inversion")
                 .conclusion("Investigate communication route")
-                .build());
+                .build();
+        analysis.setThreat(threat);
+        xaiAnalysisRepository.save(analysis);
 
         List<AlertSummaryDTO> alerts = summaryMetricsService.getLatestAlerts(5);
 

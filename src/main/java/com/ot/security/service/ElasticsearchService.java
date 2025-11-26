@@ -720,9 +720,9 @@ public class ElasticsearchService {
     public List<Map<String, Object>> getWeeklyProtocolDistribution() throws IOException {
         try {
             Instant now = Instant.now();
-            Instant weekAgo = now.minus(7, ChronoUnit.DAYS);
+            Instant weekAgo = now.minus(168, ChronoUnit.HOURS);
 
-            // 7일간 일별 프로토콜 집계
+            // 168시간(7일)간 일별 프로토콜 집계
             SearchResponse<Packet> response = elasticsearchClient.search(s -> s
                 .index(packetIndex + "-*")
                 .size(0)
@@ -908,6 +908,32 @@ public class ElasticsearchService {
                 .filter(s -> !s.isEmpty())
                 .map(FieldValue::of)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * network-stats 인덱스에서 최신 네트워크 통계 조회
+     */
+    public Map<String, Object> getLatestNetworkStats() throws IOException {
+        try {
+            SearchResponse<Map> response = elasticsearchClient.search(s -> s
+                    .index("network-stats-*")
+                    .size(1)
+                    .sort(sort -> sort.field(f -> f.field("@timestamp").order(SortOrder.Desc))),
+                    Map.class
+            );
+
+            if (!response.hits().hits().isEmpty()) {
+                Hit<Map> hit = response.hits().hits().get(0);
+                return hit.source();
+            }
+
+            log.debug("network-stats 인덱스에 데이터 없음");
+            return null;
+
+        } catch (Exception e) {
+            log.warn("network-stats 인덱스 조회 실패: {}", e.getMessage());
+            return null;
+        }
     }
 
 }

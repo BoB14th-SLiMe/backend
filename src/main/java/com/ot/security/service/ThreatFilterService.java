@@ -119,7 +119,7 @@ public class ThreatFilterService {
             xaiMap.put("detection", Optional.ofNullable(xai.getDetectionDetails()).orElse(""));
             xaiMap.put("violation", Optional.ofNullable(xai.getViolation()).orElse(""));
             xaiMap.put("conclusion", Optional.ofNullable(xai.getConclusion()).orElse(""));
-            xaiMap.put("timestamp", Optional.ofNullable(xai.getTimestamp()).map(Instant::toString).orElse(null));
+            xaiMap.put("timestamp", Optional.ofNullable(xai.getCreatedAt()).map(Instant::toString).orElse(null));
             detail.put("xai_analysis", xaiMap);
         });
 
@@ -380,14 +380,14 @@ public class ThreatFilterService {
             return null;
         }
         return switch (frontend.toLowerCase(Locale.ROOT)) {
-            case "긴급", "critical" -> "critical";
-            case "경고", "warning" -> "warning";
+            case "긴급", "critical", "warning" -> "warning";
+            case "경고", "attention" -> "attention";
             default -> null;
         };
     }
 
     private String mapSeverityToFrontend(String backend) {
-        if ("critical".equalsIgnoreCase(backend)) {
+        if ("warning".equalsIgnoreCase(backend)) {
             return "긴급";
         }
         return "경고";
@@ -423,12 +423,12 @@ public class ThreatFilterService {
         }
         if (threat.getThreatIndex() != null) {
             Optional<XaiAnalysis> byIndex = xaiAnalysisRepository
-                    .findTop1ByThreatIndexOrderByTimestampDesc(threat.getThreatIndex());
+                    .findByThreat_ThreatIndex(threat.getThreatIndex());
             if (byIndex.isPresent()) {
                 return byIndex;
             }
         }
-        return xaiAnalysisRepository.findTop1ByThreatIdOrderByTimestampDesc(threat.getThreatId());
+        return xaiAnalysisRepository.findByThreat_ThreatId(threat.getThreatId());
     }
 
     private String generateRiskSummary(Threat threat) {

@@ -1,24 +1,16 @@
 package com.ot.security.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
+import jakarta.persistence.*;
+import lombok.*;
 import java.time.Instant;
 
 /**
- * Threat entity persisted in PostgreSQL to provide a canonical record
- * that other domain objects (admin actions, XAI 분석 등) can reference.
+ * Threat entity persisted in PostgreSQL to provide a canonical record.
  */
 @Entity
 @Table(name = "threats")
-@Data
+@Getter
+@Setter // @Data 대신 @Getter, @Setter 사용 권장 (JPA 관계 시 안전성 위함)
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -67,6 +59,12 @@ public class Threat {
 
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;
+
+    // --- 1:1 양방향 매핑 추가 ---
+    // Threat가 삭제되면 분석 데이터도 함께 삭제되도록 Cascade 설정
+    @OneToOne(mappedBy = "threat", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @ToString.Exclude // Lombok 무한 루프 방지
+    private XaiAnalysis xaiAnalysis;
 
     @PrePersist
     protected void onCreate() {

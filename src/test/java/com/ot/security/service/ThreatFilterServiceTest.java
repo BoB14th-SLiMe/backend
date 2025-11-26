@@ -55,14 +55,14 @@ class ThreatFilterServiceTest {
                 .threatType("경로 조작 공격")
                 .build());
 
-        xaiAnalysisRepository.save(XaiAnalysis.builder()
-                .threatId(threat.getThreatId())
-                .threatIndex(threat.getThreatIndex())
-                .timestamp(timestamp)
+        XaiAnalysis analysis = XaiAnalysis.builder()
+                .threat(threat)
                 .detectionDetails("Unauthorized port reversal detected")
                 .violation("Source/Destination port inversion")
                 .conclusion("Network path tampering suspected")
-                .build());
+                .build();
+        analysis.setThreat(threat);
+        xaiAnalysisRepository.save(analysis);
 
         Map<String, Object> detail = threatFilterService.getThreatDetail(threat.getThreatId());
 

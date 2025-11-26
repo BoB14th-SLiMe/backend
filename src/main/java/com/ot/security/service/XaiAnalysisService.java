@@ -63,37 +63,41 @@ public class XaiAnalysisService {
         }
 
         Optional<Threat> threatOpt = resolveThreat(dto, timestamp);
-        threatOpt.ifPresent(threat -> synchronizeThreatType(threat, dto));
-        String threatId = threatOpt.map(Threat::getThreatId).orElse(null);
-        Integer threatIndex = threatOpt.map(Threat::getThreatIndex).orElse(dto.getThreatIndex());
+        if (threatOpt.isEmpty()) {
+            log.warn("연결된 Threat를 찾을 수 없어 XAI 분석을 건너뜁니다: {}", dto);
+            return null;
+        }
 
-        return XaiAnalysis.builder()
-                .timestamp(timestamp)
-                .threatType(dto.getThreatType())
-                .sourceIp(dto.getSourceIp())
-                .destinationAssetIp(dto.getDestinationAssetIp())
-                .threatId(threatId)
-                .threatIndex(threatIndex)
+        Threat threat = threatOpt.get();
+        synchronizeThreatType(threat, dto);
+
+        XaiAnalysis analysis = XaiAnalysis.builder()
+                .threat(threat)
                 .detectionDetails(dto.getAnalysis() != null ? dto.getAnalysis().getDetectionDetails() : null)
                 .violation(dto.getAnalysis() != null ? dto.getAnalysis().getViolation() : null)
                 .conclusion(dto.getAnalysis() != null ? dto.getAnalysis().getConclusion() : null)
                 .build();
+
+        // 양방향 관계 설정
+        analysis.setThreat(threat);
+
+        return analysis;
     }
 
     // 페이징 조회
     public Page<XaiAnalysis> getAllAnalyses(Pageable pageable) {
-        return xaiAnalysisRepository.findAllByOrderByTimestampDesc(pageable);
+        return xaiAnalysisRepository.findAllByOrderByCreatedAtDesc(pageable);
     }
 
     // 최근 10건 조회
     public List<XaiAnalysis> getRecentAnalyses() {
-        return xaiAnalysisRepository.findTop10ByOrderByTimestampDesc();
+        return xaiAnalysisRepository.findTop10ByOrderByCreatedAtDesc();
     }
 
     // 최근 N분 내 분석 개수 조회 (배너 통계용)
     public long countRecentAnalyses(int minutes) {
         Instant since = Instant.now().minus(minutes, ChronoUnit.MINUTES);
-        return xaiAnalysisRepository.countByTimestampAfter(since);
+        return xaiAnalysisRepository.countByCreatedAtAfter(since);
     }
 
     // 더미 데이터 생성 (프로토타입용)
@@ -107,32 +111,25 @@ public class XaiAnalysisService {
 
         List<XaiAnalysis> dummyList = new ArrayList<>();
         String[] threatTypes = {"파라미터 조작 공격", "비정상 명령 주입", "통신 프로토콜 위반", "데이터 무결성 침해", "권한 상승 시도"};
-        String[] sourceIps = {"192.168.10.45", "192.168.10.100", "192.168.10.78", "192.168.10.120", "192.168.10.33"};
-        String[] destIps = {"192.168.10.80", "192.168.10.50", "192.168.10.90", "192.168.10.110"};
-
-        Instant now = Instant.now();
 
         for (int i = 0; i < count; i++) {
             Threat threat = threats.get(random.nextInt(threats.size()));
-            Instant timestamp = threat.getEventTimestamp() != null
-                    ? threat.getEventTimestamp()
-                    : now.minus(random.nextInt(7 * 24 * 60), ChronoUnit.MINUTES);
+
+            // threatType이 비어있으면 랜덤하게 설정
+            if (threat.getThreatType() == null || threat.getThreatType().isBlank()) {
+                threat.setThreatType(threatTypes[random.nextInt(threatTypes.length)]);
+                threatRepository.save(threat);
+            }
 
             XaiAnalysis analysis = XaiAnalysis.builder()
-                    .timestamp(timestamp)
-                    .threatType(threat.getThreatType() == null || threat.getThreatType().isBlank()
-                            ? threatTypes[random.nextInt(threatTypes.length)]
-                            : threat.getThreatType())
-                    .sourceIp(threat.getSourceIp() != null ? threat.getSourceIp()
-                            : sourceIps[random.nextInt(sourceIps.length)])
-                    .destinationAssetIp(threat.getDestinationIp() != null ? threat.getDestinationIp()
-                            : destIps[random.nextInt(destIps.length)])
-                    .threatId(threat.getThreatId())
-                    .threatIndex(threat.getThreatIndex())
+                    .threat(threat)
                     .detectionDetails(generateDetectionDetails())
                     .violation(generateViolation())
                     .conclusion(generateConclusion())
                     .build();
+
+            // 양방향 관계 설정
+            analysis.setThreat(threat);
 
             dummyList.add(analysis);
         }
@@ -295,7 +292,9 @@ public class XaiAnalysisService {
         }
 
         Set<String> threatIds = analyses.stream()
-                .map(XaiAnalysis::getThreatId)
+                .map(XaiAnalysis::getThreat)
+                .filter(Objects::nonNull)
+                .map(Threat::getThreatId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 

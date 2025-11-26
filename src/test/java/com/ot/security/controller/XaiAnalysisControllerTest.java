@@ -89,9 +89,10 @@ class XaiAnalysisControllerTest {
         List<XaiAnalysis> analyses = xaiAnalysisRepository.findAll();
         assertThat(analyses).hasSize(1);
         XaiAnalysis saved = analyses.get(0);
-        assertThat(saved.getThreatIndex()).isEqualTo(1500);
-        assertThat(saved.getThreatId()).isEqualTo("THREAT-TEST-0001");
-        assertThat(saved.getThreatType()).isEqualTo("통신 경로 조작 공격");
+        assertThat(saved.getThreat()).isNotNull();
+        assertThat(saved.getThreat().getThreatIndex()).isEqualTo(1500);
+        assertThat(saved.getThreat().getThreatId()).isEqualTo("THREAT-TEST-0001");
+        assertThat(saved.getThreat().getThreatType()).isEqualTo("통신 경로 조작 공격");
         assertThat(saved.getDetectionDetails()).contains("sp 필드");
     }
 }

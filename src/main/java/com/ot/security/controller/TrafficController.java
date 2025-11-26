@@ -80,20 +80,34 @@ public class TrafficController {
     @Operation(summary = "네트워크 통계 조회", description = "현재 네트워크 연결 수와 PPS를 조회합니다.")
     public ResponseEntity<Map<String, Object>> getNetworkStats() {
         try {
-            // 3~4초 전 1초 동안의 패킷 수 = PPS
-            long recentPackets = elasticsearchService.countPacketsBetweenSeconds(4, 3);
-            double pps = recentPackets;
+            // network-stats 인덱스에서 최근 통계 조회 (파서가 10초마다 기록)
+            double pps = 0.0;
+
+            try {
+                Map<String, Object> latestStats = elasticsearchService.getLatestNetworkStats();
+                if (latestStats != null && latestStats.containsKey("pps")) {
+                    Object ppsObj = latestStats.get("pps");
+                    if (ppsObj instanceof Number) {
+                        pps = ((Number) ppsObj).doubleValue();
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("network-stats 인덱스에서 PPS 조회 실패, fallback 사용: {}", e.getMessage());
+                // Fallback: 이전 방식으로 계산 (15~10초 전 5초 구간 평균)
+                long totalPackets = elasticsearchService.countPacketsBetweenSeconds(15, 10);
+                pps = totalPackets / 5.0;
+            }
 
             long connections = assetRepository.countByAssetTypeInAndIsVisibleTrue(List.of("hmi", "plc"));
 
-            log.info("네트워크 통계 - 1초간 패킷 수: {}, PPS: {}, 연결: {}", recentPackets, pps, connections);
+            log.info("네트워크 통계 - PPS: {}, 연결: {}", pps, connections);
 
             Map<String, Object> stats = new HashMap<>();
             stats.put("packetsPerSecond", Math.round(pps * 100.0) / 100.0);
             stats.put("connections", connections);
 
             return ResponseEntity.ok(stats);
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("네트워크 통계 조회 실패", e);
             return ResponseEntity.internalServerError().build();
         }

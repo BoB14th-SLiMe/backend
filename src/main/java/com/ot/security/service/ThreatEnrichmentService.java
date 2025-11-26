@@ -67,10 +67,16 @@ public class ThreatEnrichmentService {
     private void normalizeThreatLevel(ThreatEvent threat) {
         String level = threat.getThreatLevel();
         if (level == null) {
-            threat.setThreatLevel("warning");
+            threat.setThreatLevel("attention");
             return;
         }
-        threat.setThreatLevel(level.equalsIgnoreCase("critical") ? "critical" : "warning");
+        // warning: 긴급, attention: 경고
+        String normalized = switch (level.toLowerCase(Locale.ROOT)) {
+            case "critical", "high", "warning" -> "warning";
+            case "attention", "low", "medium" -> "attention";
+            default -> "attention";
+        };
+        threat.setThreatLevel(normalized);
     }
 
     private void attachAssetMetadata(ThreatEvent threat) {

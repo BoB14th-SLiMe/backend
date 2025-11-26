@@ -73,7 +73,7 @@ public class SummaryMetricsService {
 
             // XAI 분석 데이터가 실제로 존재하는지 확인
             boolean hasXaiAnalysis = xaiAnalysisRepository
-                    .findTop1ByThreatIdOrderByTimestampDesc(threat.getThreatId())
+                    .findByThreat_ThreatId(threat.getThreatId())
                     .isPresent();
 
             alerts.add(AlertSummaryDTO.builder()
